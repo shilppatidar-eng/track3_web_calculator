@@ -2,9 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# ==============================
-# CONFIG
-# ==============================
 st.set_page_config(page_title="Codeavour Referee System", layout="wide")
 
 GOAL_POINTS = 10
@@ -13,19 +10,22 @@ ILLEGAL_DEFENSE_PENALTY = 4
 ROUGH_PLAY_PENALTY = 4
 HAND_TOUCH_PENALTY = 12
 
-MATCH_TIME = 300
-
-# ==============================
-# TITLE
-# ==============================
 st.title("🏆 CODEAVOUR ROBOSOCCER OFFICIAL REFEREE SYSTEM")
 
 # ==============================
-# TEAM NAMES
+# SESSION STORAGE
+# ==============================
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+# ==============================
+# TEAM INPUT
 # ==============================
 col1, col2 = st.columns(2)
+
 with col1:
     teamA = st.text_input("Team A Name", "TEAM A")
+
 with col2:
     teamB = st.text_input("Team B Name", "TEAM B")
 
@@ -37,7 +37,7 @@ st.divider()
 colA, colB = st.columns(2)
 
 with colA:
-    st.subheader(f"{teamA} Controls")
+    st.subheader(teamA)
     goalsA = st.number_input("Goals (A)", 0)
     ballA = st.number_input("Ball Holding Fouls (A)", 0)
     defenseA = st.number_input("Illegal Defense Fouls (A)", 0)
@@ -45,7 +45,7 @@ with colA:
     handA = st.number_input("Hand Touch Fouls (A)", 0)
 
 with colB:
-    st.subheader(f"{teamB} Controls")
+    st.subheader(teamB)
     goalsB = st.number_input("Goals (B)", 0)
     ballB = st.number_input("Ball Holding Fouls (B)", 0)
     defenseB = st.number_input("Illegal Defense Fouls (B)", 0)
@@ -55,9 +55,8 @@ with colB:
 st.divider()
 
 # ==============================
-# CALCULATION
+# CALCULATE
 # ==============================
-
 if st.button("Calculate Score"):
 
     foulA = (ballA * BALL_HOLDING_PENALTY) + \
@@ -73,8 +72,6 @@ if st.button("Calculate Score"):
     scoreA = (goalsA * GOAL_POINTS) - foulA
     scoreB = (goalsB * GOAL_POINTS) - foulB
 
-    st.success("Match Result")
-
     colR1, colR2 = st.columns(2)
     with colR1:
         st.metric(teamA, scoreA)
@@ -82,17 +79,17 @@ if st.button("Calculate Score"):
         st.metric(teamB, scoreB)
 
     if scoreA > scoreB:
-        st.success(f"🏆 {teamA} WINS!")
         winner = teamA
+        st.success(f"🏆 {teamA} WINS!")
     elif scoreB > scoreA:
-        st.success(f"🏆 {teamB} WINS!")
         winner = teamB
+        st.success(f"🏆 {teamB} WINS!")
     else:
-        st.warning("⚽ DRAW - Penalty Shootout Required!")
         winner = "DRAW"
+        st.warning("⚽ DRAW - Penalty Shootout Required!")
 
-    # Save history
-    data = {
+    # Save to session
+    match_data = {
         "Time": datetime.now(),
         "Team A": teamA,
         "Score A": scoreA,
@@ -101,7 +98,25 @@ if st.button("Calculate Score"):
         "Winner": winner
     }
 
-    df = pd.DataFrame([data])
-    df.to_csv("match_history.csv", mode="a", header=False, index=False)
+    st.session_state.history.append(match_data)
 
-    st.info("Match saved to history.")
+st.divider()
+
+# ==============================
+# MATCH HISTORY TABLE
+# ==============================
+if st.session_state.history:
+    st.subheader("📊 Match History")
+
+    df = pd.DataFrame(st.session_state.history)
+    st.dataframe(df)
+
+    # Download button
+    csv = df.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="⬇ Download Match History (CSV)",
+        data=csv,
+        file_name="codeavour_match_history.csv",
+        mime="text/csv"
+    )
