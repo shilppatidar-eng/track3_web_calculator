@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+from streamlit_autorefresh import st_autorefresh
 
 st.set_page_config(page_title="Codeavour Referee System", layout="wide")
 
@@ -11,6 +12,48 @@ ROUGH_PLAY_PENALTY = 4
 HAND_TOUCH_PENALTY = 12
 
 st.title("🏆 CODEAVOUR ROBOSOCCER OMOTEC REFEREE SYSTEM")
+# ==============================
+# TIMER SYSTEM
+# ==============================
+
+MATCH_DURATION = 300  # 5 minutes
+
+if "time_left" not in st.session_state:
+    st.session_state.time_left = MATCH_DURATION
+
+if "timer_running" not in st.session_state:
+    st.session_state.timer_running = False
+
+st.subheader("⏱ Match Timer")
+
+col_t1, col_t2, col_t3 = st.columns(3)
+
+with col_t1:
+    if st.button("▶ Start"):
+        st.session_state.timer_running = True
+
+with col_t2:
+    if st.button("⏸ Pause"):
+        st.session_state.timer_running = False
+
+with col_t3:
+    if st.button("🔄 Reset"):
+        st.session_state.timer_running = False
+        st.session_state.time_left = MATCH_DURATION
+
+# Auto refresh every 1 second
+if st.session_state.timer_running:
+    st_autorefresh(interval=1000, key="timer_refresh")
+    if st.session_state.time_left > 0:
+        st.session_state.time_left -= 1
+    else:
+        st.session_state.timer_running = False
+        st.error("⛔ TIME UP!")
+
+# Display timer
+minutes = st.session_state.time_left // 60
+seconds = st.session_state.time_left % 60
+st.markdown(f"# ⏱ {minutes:02}:{seconds:02}")
 
 # ==============================
 # SESSION STORAGE
